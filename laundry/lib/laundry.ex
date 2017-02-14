@@ -13,6 +13,6 @@ defmodule Laundry do
 
   """
   def hello do
-    :world
+      ExTwilio.Api.create(ExTwilio.Call, [to: "+17036359506", from: "+13478866502"])
   end
 end

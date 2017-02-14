@@ -28,6 +28,6 @@ defmodule Laundry.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+     [{:ex_twilio, "~> 0.3.0"}]
   end
 end

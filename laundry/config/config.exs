@@ -20,6 +20,8 @@ use Mix.Config
 #
 #     config :logger, level: :info
 #
+config :ex_twilio, account_sid:   {:system, "TWILIO_ACCOUNT_SID"},
+                   auth_token:    {:system, "TWILIO_AUTH_TOKEN"}
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment
