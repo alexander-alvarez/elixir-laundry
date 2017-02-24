@@ -32,7 +32,7 @@ def call_user():
     # call user phone first, and wait for pickup.
     user_call = client.calls.create(to=user_phone_number,
                                     from_=user_phone_number,
-                                    url="http://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient",
+                                    url="https://handler.twilio.com/twiml/EHbbeae53391ad39e7585cd3c604f68420",
                                     status_callback=handle_call_url,
                                     status_events=['initiated', 'ringing', 'answered', 'completed']
                                     )
