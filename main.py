@@ -81,6 +81,18 @@ def notify():
     app.logger.info(json.dumps(data))
     return response
 
+@app.route('/reset', methods=['GET'])
+def reset():
+    """
+        Clears the cache.
+
+    :return: HTTP 200
+    """
+    response = make_response('cache cleared', 200)
+    cache.flushall()
+    return response
+
+
 if __name__ == "__main__":
     # docker run -d -p 6379:6379 redis
     stdout_handler = logging.StreamHandler(sys.stdout)
