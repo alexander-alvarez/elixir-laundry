@@ -49,12 +49,7 @@ def call_dest(destination_number):
                                     status_events=['initiated', 'ringing', 'answered', 'completed']
                                     )
     app.logger.info('Call started {}'.format(user_call.name))
-    if cache.exists(DEST_CALL_ID_KEY):
-        arr = cache.get(DEST_CALL_ID_KEY)
-        arr.append(user_call.name)
-        cache.set(DEST_CALL_ID_KEY, arr)
-    else:
-        cache.set(DEST_CALL_ID_KEY, [])
+    cache.lpush(DEST_CALL_ID_KEY, user_call.name)
     return make_response('called {0}'.format(str(destination_number)), 200)
 
 
@@ -63,7 +58,6 @@ def notify():
     data = request.form.copy()
     call_sid = data.get('CallSid')
     call_status = data.get('CallStatus')
-    destination_number = data.get('Called')
     response = make_response('status:{0};{1}'.format(call_status, call_sid), 200)
 
     # update status in cache
@@ -72,7 +66,7 @@ def notify():
     # if busy, cancel call and
     if call_status == Call.IN_PROGRESS:
         # abort all other dialing calls
-        call_sids = cache.get(DEST_CALL_ID_KEY)
+        call_sids = cache.lrange(DEST_CALL_ID_KEY, 0, -1)
         for key in call_sids:
             # hang up all but current call
             if key != call_sid:
