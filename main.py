@@ -11,6 +11,7 @@ from twilio.rest.resources import Call
 # constants
 NOTIFICATION_ROUTE = '/notify_status'
 USER_CALL_ID_KEY = 'user_call_id'
+DEST_CALL_ID_KEY = 'dest_call_id'
 
 # environment variables
 user_phone_number = os.environ.get('USER_PHONE_NUMBER')
@@ -32,12 +33,29 @@ def call_user():
     # call user phone first, and wait for pickup.
     user_call = client.calls.create(to=user_phone_number,
                                     from_=user_phone_number,
+                                    url="https://handler.twilio.com/twiml/EHbbeae53391ad39e7585cd3c604f68420"
+                                    )
+    app.logger.info('Call started {}'.format(user_call.name))
+    cache.set(USER_CALL_ID_KEY, user_call.name)
+    return make_response('', 200)
+
+
+@app.route('/call_dest')
+def call_dest():
+    # call user phone first, and wait for pickup.
+    user_call = client.calls.create(to=destination_phone_number,
+                                    from_=user_phone_number,
                                     url="https://handler.twilio.com/twiml/EHbbeae53391ad39e7585cd3c604f68420",
                                     status_callback=handle_call_url,
                                     status_events=['initiated', 'ringing', 'answered', 'completed']
                                     )
     app.logger.info('Call started {}'.format(user_call.name))
-    cache.set(USER_CALL_ID_KEY, user_call.name)
+    if cache.exists(DEST_CALL_ID_KEY):
+        arr = cache.get(DEST_CALL_ID_KEY)
+        arr.append(user_call.name)
+        cache.set(DEST_CALL_ID_KEY, arr)
+    else:
+        cache.set(DEST_CALL_ID_KEY, [])
     return make_response('', 200)
 
 
@@ -49,21 +67,24 @@ def notify():
     destination_number = data.get('Called')
     response = make_response('status:{0};{1}'.format(call_status, call_sid), 200)
 
-    if call_sid == cache.get(USER_CALL_ID_KEY):
-        if call_status == Call.COMPLETED:
-            app.logger.info('Program execution finished')
-        elif call_status == Call.IN_PROGRESS:
-            # then call destination phone in the allotted time every 5 seconds until one picks up
-            app.logger.info('Starting process of calling destination now that user is on the line')
-            pass
-        else:
-            return response
-    elif destination_number == destination_phone_number:
+    # update status in cache
+    cache.set(call_sid, call_status)
+
+    if destination_number == destination_phone_number:
         # if busy, cancel call and
         if call_status == Call.IN_PROGRESS:
-            # join destination call to user call
             # abort all other dialing calls
-            pass
+            call_sids = cache.get(DEST_CALL_ID_KEY)
+            for key in call_sids:
+                # hang up all but current call
+                if key != call_sid:
+                    try:
+                        client.calls.hangup(key)
+                    except Exception:
+                        app.logger.info('An error occured cancelling call {0}, with status {1}'.format(
+                            key, cache.get(key)
+                        )
+                        )
 
     app.logger.info(json.dumps(data))
     return response
@@ -77,4 +98,4 @@ if __name__ == "__main__":
     app.logger.addHandler(stdout_handler)
     app.logger.addHandler(err_handler)
 
-    app.run('0.0.0.0', 8000, debug=True)
+    app.run('0.0.0.0', 8000, debug=True, threaded=True, processes=8)
