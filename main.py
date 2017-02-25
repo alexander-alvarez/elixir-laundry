@@ -71,7 +71,9 @@ def notify():
             # hang up all but current call
             if key != call_sid:
                 try:
-                    client.calls.hangup(key)
+                    call_to_hangup_status = cache.get(call_sid)
+                    if call_to_hangup_status not in {Call.CANCELED, Call.COMPLETED}:
+                        client.calls.hangup(key)
                 except Exception:
                     app.logger.info('An error occured cancelling call {0}, with status {1}'.format(
                         key, cache.get(key)
