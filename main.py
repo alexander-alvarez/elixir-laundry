@@ -53,18 +53,21 @@ def call_dest(destination_number):
     return make_response('called {0}'.format(str(destination_number)), 200)
 
 
+# TODO dial tone #3
+
 @app.route(NOTIFICATION_ROUTE, methods=['POST'])
 def notify():
     data = request.form.copy()
     call_sid = data.get('CallSid')
     call_status = data.get('CallStatus')
+    machine = data.get('AnsweredBy') == 'machine' # not sure this is API
     response = make_response('status:{0};{1}'.format(call_status, call_sid), 200)
 
     # update status in cache
     cache.set(call_sid, call_status)
 
     # if busy, cancel call and
-    if call_status == Call.IN_PROGRESS:
+    if call_status == Call.IN_PROGRESS and not machine:
         # abort all other dialing calls
         call_sids = cache.lrange(DEST_CALL_ID_KEY, 0, -1)
         for key in call_sids:
